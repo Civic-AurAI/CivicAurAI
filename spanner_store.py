@@ -218,60 +218,64 @@ CREATE PROPERTY GRAPH CivicGraph
   )
   EDGE TABLES (
     Issues AS HasCategory
-      DESTINATION KEY (CategoryId) REFERENCES IssueCategories (CategoryId)
+      SOURCE KEY (IssueId) REFERENCES Issues
+      DESTINATION KEY (CategoryId) REFERENCES IssueCategories
       LABEL HAS_CATEGORY,
-    Videos AS UploadedBy
-      DESTINATION KEY (UploadedBy) REFERENCES Users (UserId)
-      LABEL UPLOADED_BY,
+    Issues AS LocatedIn
+      SOURCE KEY (IssueId) REFERENCES Issues
+      DESTINATION KEY (DistrictId) REFERENCES Districts
+      LABEL LOCATED_IN,
+    Issues AS AssignedTo
+      SOURCE KEY (IssueId) REFERENCES Issues
+      DESTINATION KEY (AssignedOrgId) REFERENCES Organizations
+      LABEL ASSIGNED_TO,
     VideoSegments AS SegmentOf
-      DESTINATION KEY (VideoId) REFERENCES Videos (VideoId)
+      SOURCE KEY (SegmentId) REFERENCES VideoSegments
+      DESTINATION KEY (VideoId) REFERENCES Videos
       LABEL EXTRACTED_FROM,
     IssueEpisodes AS EpisodeOf
-      DESTINATION KEY (IssueId) REFERENCES Issues (IssueId)
+      SOURCE KEY (IssueId, EpisodeId) REFERENCES IssueEpisodes
+      DESTINATION KEY (IssueId) REFERENCES Issues
       LABEL EPISODE_OF,
     IssueEpisodes AS ActedBy
-      DESTINATION KEY (ActorId) REFERENCES Users (UserId)
+      SOURCE KEY (IssueId, EpisodeId) REFERENCES IssueEpisodes
+      DESTINATION KEY (ActorId) REFERENCES Users
       LABEL ACTED_BY,
     VideoTelemetry AS TelemetryOf
-      DESTINATION KEY (VideoId) REFERENCES Videos (VideoId)
+      SOURCE KEY (VideoId, TelemetryTime) REFERENCES VideoTelemetry
+      DESTINATION KEY (VideoId) REFERENCES Videos
       LABEL TELEMETRY_OF,
     Reports AS RelatesToIssue
-      DESTINATION KEY (IssueId) REFERENCES Issues (IssueId)
+      SOURCE KEY (ReportId) REFERENCES Reports
+      DESTINATION KEY (IssueId) REFERENCES Issues
       LABEL RELATES_TO,
     Reports AS SubmittedBy
-      DESTINATION KEY (ReporterId) REFERENCES Users (UserId)
+      SOURCE KEY (ReportId) REFERENCES Reports
+      DESTINATION KEY (ReporterId) REFERENCES Users
       LABEL SUBMITTED_BY,
     Reports AS IdentifiedIn
-      DESTINATION KEY (SegmentId) REFERENCES VideoSegments (SegmentId)
+      SOURCE KEY (ReportId) REFERENCES Reports
+      DESTINATION KEY (SegmentId) REFERENCES VideoSegments
       LABEL IDENTIFIED_IN,
-    Reports AS ExtractedFromVideo
-      DESTINATION KEY (VideoId) REFERENCES Videos (VideoId)
-      LABEL EXTRACTED_FROM_VIDEO,
     MediaBlobs AS BlobOfReport
-      DESTINATION KEY (ReportId) REFERENCES Reports (ReportId)
+      SOURCE KEY (MediaId) REFERENCES MediaBlobs
+      DESTINATION KEY (ReportId) REFERENCES Reports
       LABEL BLOB_OF,
-    Users AS LivesInDistrict
-      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId)
-      LABEL PRIMARY_DISTRICT,
     UserDistricts AS LivesIn
-      SOURCE KEY (UserId) REFERENCES Users (UserId)
-      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId)
+      SOURCE KEY (UserId) REFERENCES Users
+      DESTINATION KEY (DistrictId) REFERENCES Districts
       LABEL LIVES_IN,
     UserInterests AS InterestedIn
-      SOURCE KEY (UserId) REFERENCES Users (UserId)
-      DESTINATION KEY (CategoryId) REFERENCES IssueCategories (CategoryId)
+      SOURCE KEY (UserId) REFERENCES Users
+      DESTINATION KEY (CategoryId) REFERENCES IssueCategories
       LABEL INTERESTED_IN,
     OrgDistricts AS OperatesIn
-      SOURCE KEY (OrgId) REFERENCES Organizations (OrgId)
-      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId)
+      SOURCE KEY (OrgId) REFERENCES Organizations
+      DESTINATION KEY (DistrictId) REFERENCES Districts
       LABEL OPERATES_IN,
-    IssueDistricts AS LocatedIn
-      SOURCE KEY (IssueId) REFERENCES Issues (IssueId)
-      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId)
-      LABEL LOCATED_IN,
     IssueUpvotes AS Upvoted
-      SOURCE KEY (UserId) REFERENCES Users (UserId)
-      DESTINATION KEY (IssueId) REFERENCES Issues (IssueId)
+      SOURCE KEY (UserId) REFERENCES Users
+      DESTINATION KEY (IssueId) REFERENCES Issues
       LABEL UPVOTED
   )"""
 
