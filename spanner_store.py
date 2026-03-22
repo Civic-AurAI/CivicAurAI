@@ -211,22 +211,68 @@ CREATE PROPERTY GRAPH CivicGraph
     Issues,
     Videos,
     VideoSegments,
+    IssueEpisodes,
+    VideoTelemetry,
     Reports,
     MediaBlobs
   )
   EDGE TABLES (
-    UserDistricts
+    Issues AS HasCategory
+      DESTINATION KEY (CategoryId) REFERENCES IssueCategories (CategoryId)
+      LABEL HAS_CATEGORY,
+    Videos AS UploadedBy
+      DESTINATION KEY (UploadedBy) REFERENCES Users (UserId)
+      LABEL UPLOADED_BY,
+    VideoSegments AS SegmentOf
+      DESTINATION KEY (VideoId) REFERENCES Videos (VideoId)
+      LABEL EXTRACTED_FROM,
+    IssueEpisodes AS EpisodeOf
+      DESTINATION KEY (IssueId) REFERENCES Issues (IssueId)
+      LABEL EPISODE_OF,
+    IssueEpisodes AS ActedBy
+      DESTINATION KEY (ActorId) REFERENCES Users (UserId)
+      LABEL ACTED_BY,
+    VideoTelemetry AS TelemetryOf
+      DESTINATION KEY (VideoId) REFERENCES Videos (VideoId)
+      LABEL TELEMETRY_OF,
+    Reports AS RelatesToIssue
+      DESTINATION KEY (IssueId) REFERENCES Issues (IssueId)
+      LABEL RELATES_TO,
+    Reports AS SubmittedBy
+      DESTINATION KEY (ReporterId) REFERENCES Users (UserId)
+      LABEL SUBMITTED_BY,
+    Reports AS IdentifiedIn
+      DESTINATION KEY (SegmentId) REFERENCES VideoSegments (SegmentId)
+      LABEL IDENTIFIED_IN,
+    Reports AS ExtractedFromVideo
+      DESTINATION KEY (VideoId) REFERENCES Videos (VideoId)
+      LABEL EXTRACTED_FROM_VIDEO,
+    MediaBlobs AS BlobOfReport
+      DESTINATION KEY (ReportId) REFERENCES Reports (ReportId)
+      LABEL BLOB_OF,
+    Users AS LivesInDistrict
+      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId)
+      LABEL PRIMARY_DISTRICT,
+    UserDistricts AS LivesIn
       SOURCE KEY (UserId) REFERENCES Users (UserId)
-      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId),
-    UserInterests
+      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId)
+      LABEL LIVES_IN,
+    UserInterests AS InterestedIn
       SOURCE KEY (UserId) REFERENCES Users (UserId)
-      DESTINATION KEY (CategoryId) REFERENCES IssueCategories (CategoryId),
-    OrgDistricts
+      DESTINATION KEY (CategoryId) REFERENCES IssueCategories (CategoryId)
+      LABEL INTERESTED_IN,
+    OrgDistricts AS OperatesIn
       SOURCE KEY (OrgId) REFERENCES Organizations (OrgId)
-      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId),
-    IssueDistricts
+      DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId)
+      LABEL OPERATES_IN,
+    IssueDistricts AS LocatedIn
       SOURCE KEY (IssueId) REFERENCES Issues (IssueId)
       DESTINATION KEY (DistrictId) REFERENCES Districts (DistrictId)
+      LABEL LOCATED_IN,
+    IssueUpvotes AS Upvoted
+      SOURCE KEY (UserId) REFERENCES Users (UserId)
+      DESTINATION KEY (IssueId) REFERENCES Issues (IssueId)
+      LABEL UPVOTED
   )"""
 
 # Legacy tables to drop
