@@ -70,8 +70,7 @@ CREATE TABLE Issues (
     CategoryId      STRING(64) NOT NULL,
     Title           STRING(512) NOT NULL,
     Description     STRING(4096),
-    Latitude        FLOAT64 NOT NULL,
-    Longitude       FLOAT64 NOT NULL,
+    Location        GEOGRAPHY NOT NULL,
     Severity        STRING(16),
     Status          STRING(32) NOT NULL,
     Priority        INT64,
@@ -97,8 +96,7 @@ CREATE TABLE VideoSegments (
     SegmentIndex    INT64,
     StartTime       TIMESTAMP NOT NULL,
     EndTime         TIMESTAMP NOT NULL,
-    GpsLat          FLOAT64 NOT NULL,
-    GpsLon          FLOAT64 NOT NULL,
+    Location        GEOGRAPHY NOT NULL,
     ClipGcsUrl      STRING(1024),
     CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
     Embedding       ARRAY<FLOAT64>,
@@ -123,8 +121,7 @@ CREATE TABLE VideoTelemetry (
     VideoId         STRING(36) NOT NULL,
     TelemetryId     STRING(36) NOT NULL,
     Timestamp       TIMESTAMP NOT NULL,
-    GpsLat          FLOAT64,
-    GpsLon          FLOAT64,
+    Location        GEOGRAPHY,
     Heading         FLOAT64,
     Speed           FLOAT64,
     CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
@@ -139,8 +136,7 @@ CREATE TABLE Reports (
     ReporterId      STRING(36),
     ReportType      STRING(32) NOT NULL,
     Description     STRING(4096),
-    Latitude        FLOAT64 NOT NULL,
-    Longitude       FLOAT64 NOT NULL,
+    Location        GEOGRAPHY NOT NULL,
     Confidence      FLOAT64,
     SegmentId       STRING(36),
     VideoId         STRING(36),
@@ -351,53 +347,38 @@ def ensure_seed_data() -> None:
 # Haversine distance for GPS dedup
 # ---------------------------------------------------------------------------
 
-def _haversine_meters(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 6_371_000
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlam = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-
 # ---------------------------------------------------------------------------
 # Issue dedup (evolved from _find_nearby_hazard)
 # ---------------------------------------------------------------------------
 
 def _find_nearby_issue(category_id: str, gps_lat: float, gps_lon: float) -> str | None:
     """Find an unresolved Issue of the same category within dedup_radius_meters.
-    Returns IssueId if found, else None."""
+    Returns IssueId if found, else None.
+    Uses Spanner native ST_DWITHIN geospatial indexing."""
     if not config.dedup_enabled:
         return None
 
     db = get_database()
-    deg_offset = config.dedup_radius_meters / 111_000
-
     with db.snapshot() as snapshot:
         results = snapshot.execute_sql(
-            "SELECT IssueId, Latitude, Longitude FROM Issues "
+            "SELECT IssueId FROM Issues "
             "WHERE CategoryId = @cat AND Status != 'RESOLVED' "
-            "AND Latitude BETWEEN @lat_min AND @lat_max "
-            "AND Longitude BETWEEN @lon_min AND @lon_max",
+            "AND ST_DWITHIN(Location, ST_GEOGPOINT(@lon, @lat), @radius)",
             params={
                 "cat": category_id,
-                "lat_min": gps_lat - deg_offset,
-                "lat_max": gps_lat + deg_offset,
-                "lon_min": gps_lon - deg_offset,
-                "lon_max": gps_lon + deg_offset,
+                "lat": gps_lat,
+                "lon": gps_lon,
+                "radius": float(config.dedup_radius_meters),
             },
             param_types={
                 "cat": param_types.STRING,
-                "lat_min": param_types.FLOAT64,
-                "lat_max": param_types.FLOAT64,
-                "lon_min": param_types.FLOAT64,
-                "lon_max": param_types.FLOAT64,
+                "lat": param_types.FLOAT64,
+                "lon": param_types.FLOAT64,
+                "radius": param_types.FLOAT64,
             },
         )
         for row in results:
-            iid, ilat, ilon = row
-            if _haversine_meters(gps_lat, gps_lon, ilat, ilon) <= config.dedup_radius_meters:
-                return iid
+            return row[0]
 
     return None
 
@@ -424,12 +405,12 @@ def _create_issue(
             "Issues",
             columns=[
                 "IssueId", "CategoryId", "Title", "Description",
-                "Latitude", "Longitude", "Severity", "Status", "Priority",
+                "Location", "Severity", "Status", "Priority",
                 "CreatedAt",
             ],
             values=[[
                 issue_id, category_id, title, description,
-                lat, lon, severity, "NEW", 0,
+                f"POINT({lon} {lat})", severity, "NEW", 0,
                 spanner.COMMIT_TIMESTAMP,
             ]],
         )
@@ -486,12 +467,12 @@ def _create_report(
             "Reports",
             columns=[
                 "ReportId", "IssueId", "ReporterId", "ReportType",
-                "Description", "Latitude", "Longitude", "Confidence",
+                "Description", "Location", "Confidence",
                 "SegmentId", "VideoId", "CreatedAt",
             ],
             values=[[
                 report_id, issue_id, None, "AI_DETECTION",
-                description, lat, lon, confidence,
+                description, f"POINT({lon} {lat})", confidence,
                 segment_id, video_id, spanner.COMMIT_TIMESTAMP,
             ]],
         )
@@ -544,12 +525,12 @@ def insert_segment(video_id: str, chunk: VideoChunk, gcs_url: str) -> str:
             "VideoSegments",
             columns=[
                 "VideoId", "SegmentId", "SegmentIndex",
-                "StartTime", "EndTime", "GpsLat", "GpsLon",
+                "StartTime", "EndTime", "Location",
                 "ClipGcsUrl", "CreatedAt",
             ],
             values=[[
                 video_id, segment_id, chunk.chunk_index,
-                chunk.start_time, chunk.end_time, chunk.gps_lat, chunk.gps_lon,
+                chunk.start_time, chunk.end_time, f"POINT({chunk.gps_lon} {chunk.gps_lat})",
                 gcs_url, spanner.COMMIT_TIMESTAMP,
             ]],
         )
