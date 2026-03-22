@@ -12,6 +12,7 @@ From the architectural specs, we can categorize our actors and actions into foll
 ## 2. Temporal Handling & De-Duplication
 - **The "Snooze" & Resolution Flow:** We don't simply overwrite an `Issue` status. We manage it through the fully chronological `IssueUpdates` RDBMS table. When a construction site is detected (known permitted issue) by the system or citizen, a worker can append an `IssueUpdate` moving status to `SNOOZED`.
 - **Merging AI vs Human Reports:** AI identifies the `VideoSegment` and generates a `Report`. An hour later, a citizen reports the same pile of trash via the mobile app (`Report`). Through Geo-proximity + Semantic similarity matching, these two independent `Reports` point to the exact same *unified* `Issue`.
+- **The "+1" / Upvote Priority Mechanic:** To prevent autonomous vehicles from artificially inflating the priority of an issue simply by repeatedly driving past it, priority amplification (+1s) is restricted to manual human entries (Citizens and City Workers). This is modeled securely via an `IssueUpvotes` table that tracks the `UserId`, ensuring unique, deliberate upvotes from humans rather than automated frequency counts.
 
 ## 3. RDBMS Schema Design Letdowns & Best Practices
 
@@ -21,6 +22,7 @@ From the architectural specs, we can categorize our actors and actions into foll
 | **Users** | Roles (`CITIZEN`, `CITY_WORKER`, `AI_SYSTEM`). Supports `IsAnonymous` for guest flows. | Top-Level |
 | **Issues** | The established "ground truth" problem block (e.g., *Garbage at 16th St*). Has a `Status` and Geo-location. | Top-Level |
 | **IssueUpdates** | Immutable log tracking `PreviousStatus` -> `NewStatus`, actors, and comments over time. | ✅ `INTERLEAVE IN PARENT Issues` |
+| **IssueUpvotes** | Tracks explicit +1s from human users, prioritizing issues without AV spam. | ✅ `INTERLEAVE IN PARENT Issues` |
 | **Reports** | Specific submissions by Users or the AI System. Links an observation to an `Issue`. Stores AI Metadata (volume, severity). | Top-Level |
 | **Videos** | Track AV / Robot source devices, total capture time, and main GCS URI. | Top-Level |
 | **VideoTelemetry** | ~200ms updates of `Latitude`, `Longitude`, `Heading`, `Pitch`, `Roll`. Critical for extrapolating problem coordinates when AV is far from object. | ✅ `INTERLEAVE IN PARENT Videos` |

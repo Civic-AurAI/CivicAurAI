@@ -44,7 +44,15 @@ CREATE TABLE IssueUpdates (
 ) PRIMARY KEY(IssueId, UpdateId),
   INTERLEAVE IN PARENT Issues ON DELETE CASCADE;
 
--- 5. Videos (The original video from an AV/Robot)
+-- 5. IssueUpvotes (Tracks explicit +1s from human users, prevents AI upvote spam)
+CREATE TABLE IssueUpvotes (
+    IssueId STRING(36) NOT NULL,
+    UserId STRING(36) NOT NULL,
+    UpvotedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true)
+) PRIMARY KEY(IssueId, UserId),
+  INTERLEAVE IN PARENT Issues ON DELETE CASCADE;
+
+-- 6. Videos (The original video from an AV/Robot)
 CREATE TABLE Videos (
     VideoId STRING(36) NOT NULL,
     SourceDevice STRING(MAX), -- e.g., 'WAYMO_AV_101', 'STARSHIP_ROBOT_45'
@@ -131,6 +139,13 @@ CREATE PROPERTY GRAPH CivicGraph
             DESTINATION KEY (ReporterId) REFERENCES Users
             LABEL SUBMITTED_BY,
             
+        -- User explicitly upvoted (+1) an Issue
+        IssueUpvotes AS Upvoted
+            SOURCE KEY (UserId) REFERENCES Users
+            DESTINATION KEY (IssueId) REFERENCES Issues
+            LABEL UPVOTED,
+            
+            
         -- Report was identified in a Video Segment
         Reports AS IdentifiedIn
             SOURCE KEY (ReportId) REFERENCES Reports
@@ -181,6 +196,11 @@ INSERT INTO IssueUpdates (IssueId, UpdateId, ActorId, PreviousStatus, NewStatus,
 ('iss-2026-03530', 'upd-5', 'user-worker-bob', 'NEW', 'SNOOZED', 'Known PG&E construction zone. Temporary permitted dirt pile. Checking back next week.', TIMESTAMP '2026-03-21T19:30:00Z'),
 ('iss-2026-03489', 'upd-6', 'user-citizen-jane', NULL, 'NEW', 'Trash on Dolores Park East side.', TIMESTAMP '2026-03-19T10:00:00Z'),
 ('iss-2026-03489', 'upd-7', 'user-worker-bob', 'IN_PROGRESS', 'RESOLVED', 'Cleaned up by volunteer group MNC.', TIMESTAMP '2026-03-20T14:00:00Z');
+
+-- 4b. Human Upvotes (+1s) on Issues (No AI allowed here to prevent ping spam)
+INSERT INTO IssueUpvotes (IssueId, UserId, UpvotedAt) VALUES
+('iss-2026-03521', 'user-citizen-jane', TIMESTAMP '2026-03-21T18:25:00Z'),
+('iss-2026-03521', 'user-anon-guest', TIMESTAMP '2026-03-21T18:30:00Z');
 
 -- 5. Videos
 INSERT INTO Videos (VideoId, SourceDevice, GcsUri, CaptureStartTime, CaptureEndTime, UploadedAt) VALUES
