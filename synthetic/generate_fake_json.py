@@ -28,20 +28,31 @@ def generate_route(filename, start_lat, start_lon, lat_step, lon_step, heading, 
 out_dir = "/home/csaba/repos/AIML/CivicAurAI/CivicAurAI/synthetic"
 os.makedirs(out_dir, exist_ok=True)
 
-# Tenderloin video: driving North
-generate_route(
-    os.path.join(out_dir, "waymo_tl.json"), 
-    37.7833, -122.4167, 
-    0.00002, 0.0, 
-    0.0
-)
+# Stages offsets in ms (1 day = 86400000 ms)
+ONE_DAY = 86400000
+stages = [
+    ("before", 0),
+    ("during", ONE_DAY),
+    ("after", ONE_DAY * 2)
+]
 
-# SOMA video: driving South-East
-generate_route(
-    os.path.join(out_dir, "waymo_soma.json"), 
-    37.7810, -122.4000, 
-    -0.000015, 0.000015, 
-    135.0
-)
+for stage_name, offset in stages:
+    # Tenderloin video: driving North
+    generate_route(
+        os.path.join(out_dir, f"waymo_tl_{stage_name}.json"), 
+        37.7833, -122.4167, 
+        0.00002, 0.0, 
+        0.0,
+        start_ts=1774144614131 + offset
+    )
 
-print("Generated waymo_tl.json and waymo_soma.json.")
+    # SOMA video: driving South-East
+    generate_route(
+        os.path.join(out_dir, f"waymo_soma_{stage_name}.json"), 
+        37.7810, -122.4000, 
+        -0.000015, 0.000015, 
+        135.0,
+        start_ts=1774144614131 + offset
+    )
+
+print("Generated 3 stages of waymo_tl and waymo_soma telemetry JSONs.")
