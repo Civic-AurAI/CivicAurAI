@@ -28,163 +28,143 @@ _database = None
 # ---------------------------------------------------------------------------
 
 TABLE_DDL: dict[str, str] = {
-    # Phase 1 — standalone
     "Districts": """\
 CREATE TABLE Districts (
-    DistrictId      STRING(36) NOT NULL,
-    Name            STRING(256) NOT NULL,
-    BoundaryGeoJson STRING(MAX),
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-) PRIMARY KEY (DistrictId)""",
+  DistrictId STRING(50) NOT NULL,
+  Name STRING(MAX) NOT NULL,
+) PRIMARY KEY(DistrictId)""",
 
     "IssueCategories": """\
 CREATE TABLE IssueCategories (
-    CategoryId      STRING(64) NOT NULL,
-    Name            STRING(256) NOT NULL,
-    Description     STRING(2048),
-) PRIMARY KEY (CategoryId)""",
+  CategoryId STRING(50) NOT NULL,
+  DisplayName STRING(MAX) NOT NULL,
+) PRIMARY KEY(CategoryId)""",
 
-    "Users": """\
-CREATE TABLE Users (
-    UserId          STRING(36) NOT NULL,
-    Name            STRING(256) NOT NULL,
-    Email           STRING(512),
-    Role            STRING(32) NOT NULL,
-    DistrictId      STRING(36),
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-) PRIMARY KEY (UserId)""",
-
-    "Organizations": """\
-CREATE TABLE Organizations (
-    OrgId           STRING(36) NOT NULL,
-    Name            STRING(256) NOT NULL,
-    OrgType         STRING(32) NOT NULL,
-    Capabilities    ARRAY<STRING(128)>,
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-) PRIMARY KEY (OrgId)""",
-
-    # Phase 2 — parent tables for interleaving
     "Issues": """\
 CREATE TABLE Issues (
-    IssueId         STRING(36) NOT NULL,
-    CategoryId      STRING(64) NOT NULL,
-    Title           STRING(512) NOT NULL,
-    Description     STRING(4096),
-    Location        GEOGRAPHY NOT NULL,
-    Severity        STRING(16),
-    Status          STRING(32) NOT NULL,
-    Priority        INT64,
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-    UpdatedAt       TIMESTAMP,
-) PRIMARY KEY (IssueId)""",
-
-    "Videos": """\
-CREATE TABLE Videos (
-    VideoId         STRING(36) NOT NULL,
-    SourceDevice    STRING(256),
-    UploadedBy      STRING(36),
-    GcsUrl          STRING(1024),
-    DurationSec     FLOAT64,
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-) PRIMARY KEY (VideoId)""",
-
-    # Phase 3 — interleaved children
-    "VideoSegments": """\
-CREATE TABLE VideoSegments (
-    VideoId         STRING(36) NOT NULL,
-    SegmentId       STRING(36) NOT NULL,
-    SegmentIndex    INT64,
-    StartTime       TIMESTAMP NOT NULL,
-    EndTime         TIMESTAMP NOT NULL,
-    Location        GEOGRAPHY NOT NULL,
-    ClipGcsUrl      STRING(1024),
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-    Embedding       ARRAY<FLOAT64>,
-) PRIMARY KEY (VideoId, SegmentId),
-  INTERLEAVE IN PARENT Videos ON DELETE CASCADE""",
+  IssueId STRING(36) NOT NULL,
+  CategoryId STRING(50) NOT NULL,
+  DistrictId STRING(50),
+  Severity STRING(20),
+  Latitude FLOAT64 NOT NULL,
+  Longitude FLOAT64 NOT NULL,
+  Status STRING(20) NOT NULL,
+  CreatedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  ResolvedAt TIMESTAMP OPTIONS (allow_commit_timestamp = true),
+  AssignedOrgId STRING(36),
+) PRIMARY KEY(IssueId)""",
 
     "IssueEpisodes": """\
 CREATE TABLE IssueEpisodes (
-    IssueId         STRING(36) NOT NULL,
-    EpisodeId       STRING(36) NOT NULL,
-    ActorId         STRING(36),
-    Action          STRING(64) NOT NULL,
-    OldValue        STRING(1024),
-    NewValue        STRING(1024),
-    Notes           STRING(4096),
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-) PRIMARY KEY (IssueId, EpisodeId),
+  IssueId STRING(36) NOT NULL,
+  EpisodeId STRING(36) NOT NULL,
+  ActorId STRING(36),
+  PreviousStatus STRING(20),
+  NewStatus STRING(20) NOT NULL,
+  Comment STRING(MAX),
+  EpisodeTimestamp TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+) PRIMARY KEY(IssueId, EpisodeId),
   INTERLEAVE IN PARENT Issues ON DELETE CASCADE""",
-
-    "VideoTelemetry": """\
-CREATE TABLE VideoTelemetry (
-    VideoId         STRING(36) NOT NULL,
-    TelemetryId     STRING(36) NOT NULL,
-    Timestamp       TIMESTAMP NOT NULL,
-    Location        GEOGRAPHY,
-    Heading         FLOAT64,
-    Speed           FLOAT64,
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-) PRIMARY KEY (VideoId, TelemetryId),
-  INTERLEAVE IN PARENT Videos ON DELETE CASCADE""",
-
-    # Phase 4 — FK-dependent tables
-    "Reports": """\
-CREATE TABLE Reports (
-    ReportId        STRING(36) NOT NULL,
-    IssueId         STRING(36) NOT NULL,
-    ReporterId      STRING(36),
-    ReportType      STRING(32) NOT NULL,
-    Description     STRING(4096),
-    Location        GEOGRAPHY NOT NULL,
-    Confidence      FLOAT64,
-    SegmentId       STRING(36),
-    VideoId         STRING(36),
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-    Embedding       ARRAY<FLOAT64>,
-) PRIMARY KEY (ReportId)""",
-
-    "MediaBlobs": """\
-CREATE TABLE MediaBlobs (
-    BlobId          STRING(36) NOT NULL,
-    ReportId        STRING(36) NOT NULL,
-    BlobType        STRING(32) NOT NULL,
-    GcsUrl          STRING(1024) NOT NULL,
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-    Embedding       ARRAY<FLOAT64>,
-) PRIMARY KEY (BlobId)""",
 
     "IssueUpvotes": """\
 CREATE TABLE IssueUpvotes (
-    IssueId         STRING(36) NOT NULL,
-    UserId          STRING(36) NOT NULL,
-    CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
-) PRIMARY KEY (IssueId, UserId)""",
+  IssueId STRING(36) NOT NULL,
+  UserId STRING(36) NOT NULL,
+  UpvotedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+) PRIMARY KEY(IssueId, UserId),
+  INTERLEAVE IN PARENT Issues ON DELETE CASCADE""",
 
-    # Phase 5 — graph edge tables
-    "UserDistricts": """\
-CREATE TABLE UserDistricts (
-    UserId          STRING(36) NOT NULL,
-    DistrictId      STRING(36) NOT NULL,
-) PRIMARY KEY (UserId, DistrictId)""",
-
-    "UserInterests": """\
-CREATE TABLE UserInterests (
-    UserId          STRING(36) NOT NULL,
-    CategoryId      STRING(64) NOT NULL,
-) PRIMARY KEY (UserId, CategoryId)""",
+    "MediaBlobs": """\
+CREATE TABLE MediaBlobs (
+  MediaId STRING(36) NOT NULL,
+  ReportId STRING(36),
+  EpisodeId STRING(36),
+  GcsUri STRING(MAX) NOT NULL,
+  MediaType STRING(20) NOT NULL,
+  UploadedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Embedding ARRAY<FLOAT64>,
+) PRIMARY KEY(MediaId)""",
 
     "OrgDistricts": """\
 CREATE TABLE OrgDistricts (
-    OrgId           STRING(36) NOT NULL,
-    DistrictId      STRING(36) NOT NULL,
-) PRIMARY KEY (OrgId, DistrictId)""",
+  OrgId STRING(36) NOT NULL,
+  DistrictId STRING(50) NOT NULL,
+) PRIMARY KEY(OrgId, DistrictId)""",
 
-    "IssueDistricts": """\
-CREATE TABLE IssueDistricts (
-    IssueId         STRING(36) NOT NULL,
-    DistrictId      STRING(36) NOT NULL,
-) PRIMARY KEY (IssueId, DistrictId)""",
+    "Organizations": """\
+CREATE TABLE Organizations (
+  OrgId STRING(36) NOT NULL,
+  Name STRING(MAX) NOT NULL,
+  OrgType STRING(50) NOT NULL,
+  Capabilities ARRAY<STRING(MAX)>,
+) PRIMARY KEY(OrgId)""",
+
+    "Reports": """\
+CREATE TABLE Reports (
+  ReportId STRING(36) NOT NULL,
+  IssueId STRING(36) NOT NULL,
+  ReporterId STRING(36),
+  SegmentId STRING(36),
+  SourceType STRING(20) NOT NULL,
+  Description STRING(MAX),
+  AiMetadata JSON,
+  ReportedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+  Embedding ARRAY<FLOAT64>,
+) PRIMARY KEY(ReportId)""",
+
+    "UserDistricts": """\
+CREATE TABLE UserDistricts (
+  UserId STRING(36) NOT NULL,
+  DistrictId STRING(50) NOT NULL,
+) PRIMARY KEY(UserId, DistrictId)""",
+
+    "UserInterests": """\
+CREATE TABLE UserInterests (
+  UserId STRING(36) NOT NULL,
+  CategoryId STRING(50) NOT NULL,
+) PRIMARY KEY(UserId, CategoryId)""",
+
+    "Users": """\
+CREATE TABLE Users (
+  UserId STRING(36) NOT NULL,
+  Name STRING(MAX),
+  Role STRING(50) NOT NULL,
+  IsAnonymous BOOL NOT NULL,
+  CreatedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+) PRIMARY KEY(UserId)""",
+
+    "VideoSegments": """\
+CREATE TABLE VideoSegments (
+  SegmentId STRING(36) NOT NULL,
+  VideoId STRING(36) NOT NULL,
+  StartTimeOffset FLOAT64 NOT NULL,
+  EndTimeOffset FLOAT64 NOT NULL,
+  AiSummary STRING(MAX),
+  GcsUri STRING(MAX),
+  Embedding ARRAY<FLOAT64>,
+) PRIMARY KEY(SegmentId)""",
+
+    "Videos": """\
+CREATE TABLE Videos (
+  VideoId STRING(36) NOT NULL,
+  SourceDevice STRING(MAX),
+  GcsUri STRING(MAX) NOT NULL,
+  CaptureStartTime TIMESTAMP,
+  CaptureEndTime TIMESTAMP,
+  UploadedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp = true),
+) PRIMARY KEY(VideoId)""",
+
+    "VideoTelemetry": """\
+CREATE TABLE VideoTelemetry (
+  VideoId STRING(36) NOT NULL,
+  TelemetryTime TIMESTAMP NOT NULL,
+  Latitude FLOAT64 NOT NULL,
+  Longitude FLOAT64 NOT NULL,
+  Heading FLOAT64,
+  Pitch FLOAT64,
+  Roll FLOAT64,
+) PRIMARY KEY(VideoId, TelemetryTime),
+  INTERLEAVE IN PARENT Videos ON DELETE CASCADE""",
 }
 
 # Ordered list ensures dependency-safe creation
@@ -193,12 +173,12 @@ TABLE_ORDER = [
     "Districts", "IssueCategories", "Users", "Organizations",
     # Phase 2
     "Issues", "Videos",
-    # Phase 3 (interleaved — parents must exist first)
-    "VideoSegments", "IssueEpisodes", "VideoTelemetry",
+    # Phase 3 (interleaved)
+    "IssueEpisodes", "VideoTelemetry", "IssueUpvotes",
     # Phase 4
-    "Reports", "MediaBlobs", "IssueUpvotes",
+    "VideoSegments", "Reports", "MediaBlobs",
     # Phase 5 (edge tables)
-    "UserDistricts", "UserInterests", "OrgDistricts", "IssueDistricts",
+    "UserDistricts", "UserInterests", "OrgDistricts",
 ]
 
 GRAPH_DDL = """\
@@ -387,8 +367,8 @@ def ensure_seed_data() -> None:
     with db.batch() as batch:
         batch.insert(
             "IssueCategories",
-            columns=["CategoryId", "Name", "Description"],
-            values=[[c.category_id, c.name, c.description] for c in missing],
+            columns=["CategoryId", "DisplayName"],
+            values=[[c.category_id, c.name] for c in missing],
         )
     logger.info("Seeded %d issue categories", len(missing))
 
@@ -413,7 +393,7 @@ def _find_nearby_issue(category_id: str, gps_lat: float, gps_lon: float) -> str 
         results = snapshot.execute_sql(
             "SELECT IssueId FROM Issues "
             "WHERE CategoryId = @cat AND Status != 'RESOLVED' "
-            "AND ST_DWITHIN(Location, ST_GEOGPOINT(@lon, @lat), @radius)",
+            "AND ST_DWITHIN(ST_GEOGPOINT(Longitude, Latitude), ST_GEOGPOINT(@lon, @lat), @radius)",
             params={
                 "cat": category_id,
                 "lat": gps_lat,
@@ -454,22 +434,19 @@ def _create_issue(
         batch.insert(
             "Issues",
             columns=[
-                "IssueId", "CategoryId", "Title", "Description",
-                "Location", "Severity", "Status", "Priority",
-                "CreatedAt",
+                "IssueId", "CategoryId", "Latitude", "Longitude", 
+                "Severity", "Status", "CreatedAt",
             ],
             values=[[
-                issue_id, category_id, title, description,
-                f"POINT({lon} {lat})", severity, "NEW", 0,
-                spanner.COMMIT_TIMESTAMP,
+                issue_id, category_id, lat, lon, 
+                severity, "NEW", spanner.COMMIT_TIMESTAMP,
             ]],
         )
         batch.insert(
             "IssueEpisodes",
-            columns=["IssueId", "EpisodeId", "ActorId", "Action", "NewValue", "Notes", "CreatedAt"],
+            columns=["IssueId", "EpisodeId", "NewStatus", "Comment", "EpisodeTimestamp"],
             values=[[
-                issue_id, episode_id, None, "CREATED",
-                "NEW", description, spanner.COMMIT_TIMESTAMP,
+                issue_id, episode_id, "NEW", description, spanner.COMMIT_TIMESTAMP,
             ]],
         )
 
@@ -485,10 +462,9 @@ def _add_sighting_episode(issue_id: str, description: str) -> None:
     with db.batch() as batch:
         batch.insert(
             "IssueEpisodes",
-            columns=["IssueId", "EpisodeId", "ActorId", "Action", "Notes", "CreatedAt"],
+            columns=["IssueId", "EpisodeId", "NewStatus", "Comment", "EpisodeTimestamp"],
             values=[[
-                issue_id, episode_id, None, "SIGHTING",
-                description, spanner.COMMIT_TIMESTAMP,
+                issue_id, episode_id, "NEW", description, spanner.COMMIT_TIMESTAMP,
             ]],
         )
 
@@ -502,47 +478,43 @@ def _add_sighting_episode(issue_id: str, description: str) -> None:
 def _create_report(
     issue_id: str,
     description: str,
-    lat: float,
-    lon: float,
     confidence: float,
     segment_id: str | None,
-    video_id: str | None,
 ) -> str:
-    """Create an AI_DETECTION report linked to an Issue. Returns report_id."""
+    """Create an AI_VISION report linked to an Issue. Returns report_id."""
     report_id = str(uuid.uuid4())
     db = get_database()
+    import json
 
     with db.batch() as batch:
         batch.insert(
             "Reports",
             columns=[
-                "ReportId", "IssueId", "ReporterId", "ReportType",
-                "Description", "Location", "Confidence",
-                "SegmentId", "VideoId", "CreatedAt",
+                "ReportId", "IssueId", "SourceType",
+                "Description", "SegmentId", "AiMetadata", "ReportedAt",
             ],
             values=[[
-                report_id, issue_id, None, "AI_DETECTION",
-                description, f"POINT({lon} {lat})", confidence,
-                segment_id, video_id, spanner.COMMIT_TIMESTAMP,
+                report_id, issue_id, "AI_VISION",
+                description, segment_id, json.dumps({"confidence": confidence}), spanner.COMMIT_TIMESTAMP,
             ]],
         )
 
     return report_id
 
 
-def _create_media_blob(report_id: str, blob_type: str, gcs_url: str) -> str:
-    """Create a MediaBlob linked to a Report. Returns blob_id."""
-    blob_id = str(uuid.uuid4())
+def _create_media_blob(report_id: str, media_type: str, gcs_uri: str) -> str:
+    """Create a MediaBlob linked to a Report. Returns media_id."""
+    media_id = str(uuid.uuid4())
     db = get_database()
 
     with db.batch() as batch:
         batch.insert(
             "MediaBlobs",
-            columns=["BlobId", "ReportId", "BlobType", "GcsUrl", "CreatedAt"],
-            values=[[blob_id, report_id, blob_type, gcs_url, spanner.COMMIT_TIMESTAMP]],
+            columns=["MediaId", "ReportId", "MediaType", "GcsUri", "UploadedAt"],
+            values=[[media_id, report_id, media_type, gcs_uri, spanner.COMMIT_TIMESTAMP]],
         )
 
-    return blob_id
+    return media_id
 
 
 # ---------------------------------------------------------------------------
@@ -557,8 +529,8 @@ def insert_video(video_name: str, duration_sec: float | None = None) -> str:
     with db.batch() as batch:
         batch.insert(
             "Videos",
-            columns=["VideoId", "SourceDevice", "UploadedBy", "GcsUrl", "DurationSec", "CreatedAt"],
-            values=[[video_id, video_name, None, None, duration_sec, spanner.COMMIT_TIMESTAMP]],
+            columns=["VideoId", "SourceDevice", "GcsUri", "UploadedAt"],
+            values=[[video_id, video_name, "gs://raw", spanner.COMMIT_TIMESTAMP]],
         )
 
     logger.info("Created video record %s for %s", video_id, video_name)
@@ -566,7 +538,7 @@ def insert_video(video_name: str, duration_sec: float | None = None) -> str:
 
 
 def insert_segment(video_id: str, chunk: VideoChunk, gcs_url: str) -> str:
-    """Create a VideoSegments row (interleaved under Videos). Returns segment_id."""
+    """Create a VideoSegments row. Returns segment_id."""
     segment_id = str(uuid.uuid4())
     db = get_database()
 
@@ -574,14 +546,10 @@ def insert_segment(video_id: str, chunk: VideoChunk, gcs_url: str) -> str:
         batch.insert(
             "VideoSegments",
             columns=[
-                "VideoId", "SegmentId", "SegmentIndex",
-                "StartTime", "EndTime", "Location",
-                "ClipGcsUrl", "CreatedAt",
+                "SegmentId", "VideoId", "StartTimeOffset", "EndTimeOffset", "GcsUri",
             ],
             values=[[
-                video_id, segment_id, chunk.chunk_index,
-                chunk.start_time, chunk.end_time, f"POINT({chunk.gps_lon} {chunk.gps_lat})",
-                gcs_url, spanner.COMMIT_TIMESTAMP,
+                segment_id, video_id, chunk.start_time, chunk.end_time, gcs_url,
             ]],
         )
 
@@ -620,11 +588,8 @@ def insert_detection(
     report_id = _create_report(
         issue_id=issue_id,
         description=detection.description,
-        lat=gps_lat,
-        lon=gps_lon,
         confidence=detection.confidence,
         segment_id=segment_id,
-        video_id=video_id,
     )
 
     # Create MediaBlob linking the clip
