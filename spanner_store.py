@@ -101,6 +101,7 @@ CREATE TABLE VideoSegments (
     GpsLon          FLOAT64 NOT NULL,
     ClipGcsUrl      STRING(1024),
     CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+    Embedding       ARRAY<FLOAT64>,
 ) PRIMARY KEY (VideoId, SegmentId),
   INTERLEAVE IN PARENT Videos ON DELETE CASCADE""",
 
@@ -144,6 +145,7 @@ CREATE TABLE Reports (
     SegmentId       STRING(36),
     VideoId         STRING(36),
     CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+    Embedding       ARRAY<FLOAT64>,
 ) PRIMARY KEY (ReportId)""",
 
     "MediaBlobs": """\
@@ -153,6 +155,7 @@ CREATE TABLE MediaBlobs (
     BlobType        STRING(32) NOT NULL,
     GcsUrl          STRING(1024) NOT NULL,
     CreatedAt       TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+    Embedding       ARRAY<FLOAT64>,
 ) PRIMARY KEY (BlobId)""",
 
     "IssueUpvotes": """\

@@ -107,7 +107,8 @@ CREATE TABLE VideoSegments (
     StartTimeOffset FLOAT64 NOT NULL,
     EndTimeOffset FLOAT64 NOT NULL,   
     AiSummary STRING(MAX),
-    GcsUri STRING(MAX)                
+    GcsUri STRING(MAX),
+    Embedding ARRAY<FLOAT64>
 ) PRIMARY KEY(SegmentId);
 
 -- 9. Reports & Media
@@ -119,7 +120,8 @@ CREATE TABLE Reports (
     SourceType STRING(20) NOT NULL, 
     Description STRING(MAX),
     AiMetadata JSON,              
-    ReportedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true)
+    ReportedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+    Embedding ARRAY<FLOAT64>
 ) PRIMARY KEY(ReportId);
 
 CREATE TABLE MediaBlobs (
@@ -128,7 +130,8 @@ CREATE TABLE MediaBlobs (
     EpisodeId STRING(36),         
     GcsUri STRING(MAX) NOT NULL,
     MediaType STRING(20) NOT NULL, 
-    UploadedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true)
+    UploadedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+    Embedding ARRAY<FLOAT64>
 ) PRIMARY KEY(MediaId);
 
 
