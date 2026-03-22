@@ -213,7 +213,8 @@ INSERT INTO Issues (IssueId, CategoryId, DistrictId, Severity, Latitude, Longitu
 ('iss-tl-distress-1', 'PERSON_IN_DISTRESS', 'dist-tenderloin', 'CRITICAL', 37.7840, -122.4140, 'IN_PROGRESS', TIMESTAMP '2026-03-21T11:00:00Z', 'org-tenderloin-care'),
 ('iss-mission-encamp-1', 'HOMELESS_OUTREACH', 'dist-mission', 'MEDIUM', 37.7600, -122.4190, 'NEW', TIMESTAMP '2026-03-21T13:00:00Z', 'org-mission-food'),
 ('iss-mission-poop-1', 'ANIMAL_WASTE', 'dist-mission', 'LOW', 37.7620, -122.4210, 'RESOLVED', TIMESTAMP '2026-03-21T09:00:00Z', 'org-dpw-09'),
-('iss-pier-trash-1', 'GARBAGE_WASTE', 'dist-embarcadero', 'MEDIUM', 37.8080, -122.4100, 'NEW', TIMESTAMP '2026-03-21T14:00:00Z', 'org-pier-maint');
+('iss-pier-trash-1', 'GARBAGE_WASTE', 'dist-embarcadero', 'MEDIUM', 37.8080, -122.4100, 'NEW', TIMESTAMP '2026-03-21T14:00:00Z', 'org-pier-maint'),
+('iss-soma-pothole-1', 'STREET_LIGHT_POTHOLE', 'dist-soma', 'MEDIUM', 37.7810, -122.4000, 'VERIFIED', TIMESTAMP '2026-03-21T08:00:00Z', 'org-muni-fix');
 
 -- 5. Temporal Aspect: Issue Episodes (Graphity style)
 INSERT INTO IssueEpisodes (IssueId, EpisodeId, ActorId, PreviousStatus, NewStatus, Comment, EpisodeTimestamp) VALUES
@@ -223,7 +224,11 @@ INSERT INTO IssueEpisodes (IssueId, EpisodeId, ActorId, PreviousStatus, NewStatu
 ('iss-mission-encamp-1', 'ep-4', 'user-ai-vision', NULL, 'NEW', 'Encampment identified. 2 Tents.', TIMESTAMP '2026-03-21T13:00:00Z'),
 ('iss-mission-poop-1', 'ep-5', 'user-dev-csaba', NULL, 'NEW', 'Stepped in dog poop. DPW please.', TIMESTAMP '2026-03-21T09:00:00Z'),
 ('iss-mission-poop-1', 'ep-6', 'user-dev-csaba', 'IN_PROGRESS', 'RESOLVED', 'Cleaned up by street sweeper.', TIMESTAMP '2026-03-21T09:45:00Z'),
-('iss-pier-trash-1', 'ep-7', 'user-dev-chili', NULL, 'NEW', 'Overflowing trash cans at Pier 39 entrance.', TIMESTAMP '2026-03-21T14:00:00Z');
+('iss-pier-trash-1', 'ep-7', 'user-dev-chili', NULL, 'NEW', 'Overflowing trash cans at Pier 39 entrance.', TIMESTAMP '2026-03-21T14:00:00Z'),
+('iss-soma-pothole-1', 'ep-pot-1', 'user-ai-vision', NULL, 'NEW', 'Deep pothole detected on 3rd St by Waymo AV camera.', TIMESTAMP '2026-03-21T08:00:00Z'),
+('iss-soma-pothole-1', 'ep-pot-2', 'user-dev-adit', 'NEW', 'IN_PROGRESS', 'Dispatching MUNI-FIX road repair crew.', TIMESTAMP '2026-03-21T09:00:00Z'),
+('iss-soma-pothole-1', 'ep-pot-3', 'user-dev-csaba', 'IN_PROGRESS', 'RESOLVED', 'Crew filled pothole with cold patch asphalt.', TIMESTAMP '2026-03-21T14:00:00Z'),
+('iss-soma-pothole-1', 'ep-pot-4', 'user-ai-vision', 'RESOLVED', 'VERIFIED', 'Follow-up Waymo AV drive-by confirmed surface is smooth.', TIMESTAMP '2026-03-21T18:00:00Z');
 
 -- 6. Upvotes (Deduplicated Human priority)
 INSERT INTO IssueUpvotes (IssueId, UserId, UpvotedAt) VALUES
@@ -233,12 +238,18 @@ INSERT INTO IssueUpvotes (IssueId, UserId, UpvotedAt) VALUES
 
 -- 7. Videos & Telemetry
 INSERT INTO Videos (VideoId, SourceDevice, GcsUri, CaptureStartTime, CaptureEndTime, UploadedAt) VALUES
-('vid-waymo-tl-1', 'WAYMO_AV_TL', 'gs://civic-aurai/waymo_tl.mp4', TIMESTAMP '2026-03-21T09:50:00Z', TIMESTAMP '2026-03-21T10:10:00Z', CURRENT_TIMESTAMP());
+('vid-waymo-tl-1', 'WAYMO_AV_TL', 'gs://civic-aurai/waymo_tl.mp4', TIMESTAMP '2026-03-21T09:50:00Z', TIMESTAMP '2026-03-21T10:10:00Z', CURRENT_TIMESTAMP()),
+('vid-waymo-soma-1', 'WAYMO_AV_SOMA', 'gs://civic-aurai/waymo_soma_morning.mp4', TIMESTAMP '2026-03-21T07:50:00Z', TIMESTAMP '2026-03-21T08:10:00Z', CURRENT_TIMESTAMP()),
+('vid-waymo-soma-2', 'WAYMO_AV_SOMA', 'gs://civic-aurai/waymo_soma_evening.mp4', TIMESTAMP '2026-03-21T17:50:00Z', TIMESTAMP '2026-03-21T18:10:00Z', CURRENT_TIMESTAMP());
 
 -- 8. Video Segments & Reports
 INSERT INTO VideoSegments (SegmentId, VideoId, StartTimeOffset, EndTimeOffset, AiSummary, GcsUri) VALUES
-('seg-tl-needle-1', 'vid-waymo-tl-1', 450.0, 455.5, 'Biohazard: needles and paraphernalia detected on sidewalk.', 'gs://civic-aurai/seg_tl_needle.mp4');
+('seg-tl-needle-1', 'vid-waymo-tl-1', 450.0, 455.5, 'Biohazard: needles and paraphernalia detected on sidewalk.', 'gs://civic-aurai/seg_tl_needle.mp4'),
+('seg-soma-pothole-1', 'vid-waymo-soma-1', 120.0, 125.5, 'Pothole detected in middle lane.', 'gs://civic-aurai/seg_soma_pothole_1.mp4'),
+('seg-soma-pothole-2', 'vid-waymo-soma-2', 340.0, 345.5, 'Pothole previously reported is now filled and leveled.', 'gs://civic-aurai/seg_soma_pothole_2.mp4');
 
 INSERT INTO Reports (ReportId, IssueId, ReporterId, SegmentId, SourceType, Description, AiMetadata, ReportedAt) VALUES
 ('rep-001', 'iss-tl-needle-1', 'user-ai-vision', 'seg-tl-needle-1', 'AI_VISION', 'AI discovered needles during Tenderloin sweep.', '{"confidence": 0.95}', TIMESTAMP '2026-03-21T10:00:00Z'),
-('rep-002', 'iss-tl-distress-1', 'user-dev-pryanka', NULL, 'CITIZEN_APP', 'Person needs medical attention or housing help.', NULL, TIMESTAMP '2026-03-21T11:00:00Z');
+('rep-002', 'iss-tl-distress-1', 'user-dev-pryanka', NULL, 'CITIZEN_APP', 'Person needs medical attention or housing help.', NULL, TIMESTAMP '2026-03-21T11:00:00Z'),
+('rep-003', 'iss-soma-pothole-1', 'user-ai-vision', 'seg-soma-pothole-1', 'AI_VISION', 'Initial detection of pothole by Waymo AV.', '{"confidence": 0.92}', TIMESTAMP '2026-03-21T08:00:00Z'),
+('rep-004', 'iss-soma-pothole-1', 'user-ai-vision', 'seg-soma-pothole-2', 'AI_VISION', 'Visual confirmation of completed repair by Waymo AV.', '{"confidence": 0.98, "repair_quality": "good"}', TIMESTAMP '2026-03-21T18:00:00Z');
