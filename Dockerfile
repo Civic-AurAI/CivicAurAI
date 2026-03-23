@@ -17,14 +17,11 @@ WORKDIR /app
 # Install uv for fast python package management
 RUN pip install uv
 
-# Copy the python lockfiles and pyproject.toml
-COPY pyproject.toml uv.lock ./
-
-# Install python dependencies system-wide (no venv needed in docker)
-RUN uv pip install --system fastapi uvicorn httpx pydantic google-cloud-spanner
-
-# Copy the rest of the backend files
+# Copy the rest of the backend files so the '.' package builds successfully
 COPY *.py ./
+
+# Install project dependencies from pyproject.toml, plus web additions system-wide
+RUN uv pip install --system . fastapi "uvicorn[standard]" httpx
 
 # Copy the built React app from Stage 1 into the designated dist folder
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
