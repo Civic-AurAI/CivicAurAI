@@ -393,7 +393,9 @@ def _find_nearby_issue(category_id: str, gps_lat: float, gps_lon: float) -> str 
         results = snapshot.execute_sql(
             "SELECT IssueId FROM Issues "
             "WHERE CategoryId = @cat AND Status != 'RESOLVED' "
-            "AND ST_DWITHIN(ST_GEOGPOINT(Longitude, Latitude), ST_GEOGPOINT(@lon, @lat), @radius)",
+            "AND (ACOS(SIN(Latitude * ACOS(-1) / 180) * SIN(@lat * ACOS(-1) / 180) + "
+            "COS(Latitude * ACOS(-1) / 180) * COS(@lat * ACOS(-1) / 180) * "
+            "COS((Longitude - @lon) * ACOS(-1) / 180)) * 6371000) <= @radius",
             params={
                 "cat": category_id,
                 "lat": gps_lat,

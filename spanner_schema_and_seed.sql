@@ -51,7 +51,8 @@ CREATE TABLE Issues (
     CategoryId STRING(50) NOT NULL, -- FK to IssueCategories
     DistrictId STRING(50),          -- FK to Districts
     Severity STRING(20), 
-    Location GEOGRAPHY NOT NULL,
+    Latitude FLOAT64 NOT NULL,
+    Longitude FLOAT64 NOT NULL,
     Status STRING(20) NOT NULL, 
     CreatedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
     ResolvedAt TIMESTAMP,
@@ -91,7 +92,8 @@ CREATE TABLE Videos (
 CREATE TABLE VideoTelemetry (
     VideoId STRING(36) NOT NULL,
     TelemetryTime TIMESTAMP NOT NULL,
-    Location GEOGRAPHY NOT NULL,
+    Latitude FLOAT64 NOT NULL,
+    Longitude FLOAT64 NOT NULL,
     Heading FLOAT64, 
     Pitch FLOAT64,
     Roll FLOAT64
@@ -209,13 +211,13 @@ INSERT INTO UserInterests (UserId, CategoryId) VALUES
 ('user-dev-chili', 'BIOHAZARD');
 
 -- 4. Unified Issues (Tenderloin, Mission, Piers)
-INSERT INTO Issues (IssueId, CategoryId, DistrictId, Severity, Location, Status, CreatedAt, AssignedOrgId) VALUES
-('iss-tl-needle-1', 'BIOHAZARD', 'dist-tenderloin', 'HIGH', ST_GEOGPOINT(-122.4167, 37.7833), 'NEW', TIMESTAMP '2026-03-21T10:00:00Z', NULL),
-('iss-tl-distress-1', 'PERSON_IN_DISTRESS', 'dist-tenderloin', 'CRITICAL', ST_GEOGPOINT(-122.4140, 37.7840), 'IN_PROGRESS', TIMESTAMP '2026-03-21T11:00:00Z', 'org-tenderloin-care'),
-('iss-mission-encamp-1', 'HOMELESS_OUTREACH', 'dist-mission', 'MEDIUM', ST_GEOGPOINT(-122.4190, 37.7600), 'NEW', TIMESTAMP '2026-03-21T13:00:00Z', 'org-mission-food'),
-('iss-mission-poop-1', 'ANIMAL_WASTE', 'dist-mission', 'LOW', ST_GEOGPOINT(-122.4210, 37.7620), 'RESOLVED', TIMESTAMP '2026-03-21T09:00:00Z', 'org-dpw-09'),
-('iss-pier-trash-1', 'GARBAGE_WASTE', 'dist-embarcadero', 'MEDIUM', ST_GEOGPOINT(-122.4100, 37.8080), 'NEW', TIMESTAMP '2026-03-21T14:00:00Z', 'org-pier-maint'),
-('iss-soma-pothole-1', 'STREET_LIGHT_POTHOLE', 'dist-soma', 'MEDIUM', ST_GEOGPOINT(-122.4000, 37.7810), 'VERIFIED', TIMESTAMP '2026-03-21T08:00:00Z', 'org-muni-fix');
+INSERT INTO Issues (IssueId, CategoryId, DistrictId, Severity, Latitude, Longitude, Status, CreatedAt, AssignedOrgId) VALUES
+('iss-tl-needle-1', 'BIOHAZARD', 'dist-tenderloin', 'HIGH', 37.7833, -122.4167, 'NEW', TIMESTAMP '2026-03-21T10:00:00Z', NULL),
+('iss-tl-distress-1', 'PERSON_IN_DISTRESS', 'dist-tenderloin', 'CRITICAL', 37.7840, -122.4140, 'IN_PROGRESS', TIMESTAMP '2026-03-21T11:00:00Z', 'org-tenderloin-care'),
+('iss-mission-encamp-1', 'HOMELESS_OUTREACH', 'dist-mission', 'MEDIUM', 37.7600, -122.4190, 'NEW', TIMESTAMP '2026-03-21T13:00:00Z', 'org-mission-food'),
+('iss-mission-poop-1', 'ANIMAL_WASTE', 'dist-mission', 'LOW', 37.7620, -122.4210, 'RESOLVED', TIMESTAMP '2026-03-21T09:00:00Z', 'org-dpw-09'),
+('iss-pier-trash-1', 'GARBAGE_WASTE', 'dist-embarcadero', 'MEDIUM', 37.8080, -122.4100, 'NEW', TIMESTAMP '2026-03-21T14:00:00Z', 'org-pier-maint'),
+('iss-soma-pothole-1', 'STREET_LIGHT_POTHOLE', 'dist-soma', 'MEDIUM', 37.7810, -122.4000, 'VERIFIED', TIMESTAMP '2026-03-21T08:00:00Z', 'org-muni-fix');
 
 -- 5. Temporal Aspect: Issue Episodes (Graphity style)
 INSERT INTO IssueEpisodes (IssueId, EpisodeId, ActorId, PreviousStatus, NewStatus, Comment, EpisodeTimestamp) VALUES
