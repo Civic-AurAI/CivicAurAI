@@ -1,0 +1,7 @@
+__pycache__/
+.venv/
+.env
+frontend/node_modules/
+frontend/dist/
+.git/
+spanner_sql_backup_*/

@@ -4,6 +4,10 @@ import httpx
 from typing import List, Dict, Any
 from datetime import datetime
 from google.cloud import spanner
+import os
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 # Local imports
 from models import DEFAULT_ISSUE_CATEGORIES
@@ -93,3 +97,27 @@ async def get_reports(limit: int = 20):
     # Combine and sort roughly by date (ignoring strict timezone issues for prototype)
     unified_reports.sort(key=lambda x: x["created_at"] or "", reverse=True)
     return unified_reports[:limit*2]
+
+# ---------------------------------------------------------------------------
+# Serve React Frontend (SPA)
+# ---------------------------------------------------------------------------
+react_build_dir = os.path.join(os.path.dirname(__file__), "frontend/dist")
+
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Catch-all route to serve the React SPA or static assets."""
+    # Don't intercept API routes
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+    # Serve the requested static file if it exists
+    requested_file = os.path.join(react_build_dir, full_path)
+    if os.path.exists(requested_file) and os.path.isfile(requested_file):
+        return FileResponse(requested_file)
+    
+    # Otherwise, fallback to index.html for React Router
+    index_file = os.path.join(react_build_dir, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+        
+    return {"message": "Frontend build not found. Run 'npm run build' inside frontend/"}
