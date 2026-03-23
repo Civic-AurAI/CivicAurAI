@@ -17,11 +17,17 @@ WORKDIR /app
 # Install uv for fast python package management
 RUN pip install uv
 
-# Copy the rest of the backend files so the '.' package builds successfully
-COPY *.py ./
+# Copy the python lockfiles and pyproject.toml first
+COPY pyproject.toml uv.lock ./
 
-# Install project dependencies from pyproject.toml, plus web additions system-wide
-RUN uv pip install --system . fastapi "uvicorn[standard]" httpx
+# Install dependencies into a virtual environment using the lockfile
+RUN uv sync --no-install-project
+
+# Put the virtual environment in the PATH
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Copy the rest of the backend files
+COPY *.py ./
 
 # Copy the built React app from Stage 1 into the designated dist folder
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
