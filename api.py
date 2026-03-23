@@ -80,6 +80,9 @@ async def get_reports(limit: int = 20):
             data = resp.json()
             for item in data:
                 # Map SF311 format
+                media = item.get("media_url")
+                image_url = media.get("url") if isinstance(media, dict) else media if isinstance(media, str) else None
+                
                 unified_reports.append({
                     "id": item.get("service_request_id"),
                     "title": item.get("service_details") or item.get("service_name"),
@@ -89,7 +92,7 @@ async def get_reports(limit: int = 20):
                     "source": "SF311 Public",
                     "agency": item.get("agency_responsible"),
                     "created_at": item.get("requested_datetime"),
-                    "image_url": item.get("media_url") # Some SF311 tickets have images
+                    "image_url": image_url
                 })
     except Exception as e:
         print(f"Error fetching from SF311 API: {e}")
