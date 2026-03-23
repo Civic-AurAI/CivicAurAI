@@ -29,7 +29,10 @@ def format_value(val):
     if isinstance(val, bool):
         return "true" if val else "false"
     if isinstance(val, datetime.datetime):
-        return f"TIMESTAMP '{val.isoformat()}Z'"
+        if val.tzinfo is None:
+            return f"TIMESTAMP '{val.isoformat()}Z'"
+        else:
+            return f"TIMESTAMP '{val.isoformat()}'"
     if isinstance(val, list):
         items = [format_value(v) for v in val]
         return f"[{', '.join(items)}]"
